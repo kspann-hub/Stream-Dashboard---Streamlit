@@ -652,7 +652,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     name='Failed', marker=dict(color='#E04040'),
                     text=unit_summary['Failed'].apply(lambda v: str(v) if v > 0 else ''),
                     textposition='inside',
-                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=12),
+                    textfont=dict(color="#1F1A1A", family='Barlow, sans-serif', size=12),
                 ))
                 fig_unit.add_trace(go.Bar(
                     x=unit_summary['Unit'], y=unit_summary['Not_Started'],
@@ -671,7 +671,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     legend=dict(
                         orientation='h', yanchor='bottom', y=1.02,
                         xanchor='left', x=0,
-                        font=dict(color='#8A8F98', size=11)
+                        font=dict(color="#4B5058", size=11)
                     ),
                     height=350,
                 )
