@@ -154,6 +154,18 @@ def clean_checklists(df: pd.DataFrame, lookups: dict) -> pd.DataFrame:
         return df
     df = standardize_columns(df)
 
+    # Derive commissioning level from type_name (L2, L3, etc.)
+    if 'type_name' in df.columns:
+        df['level'] = df['type_name'].str.extract(r'(L\d)', expand=False)
+        # Map non-Lx types: Component Verification → L4, FAT → FAT
+        mask_cv = df['type_name'].str.contains('Component Verification', case=False, na=False)
+        mask_fat = df['type_name'].str.contains('FAT', case=False, na=False)
+        df.loc[mask_cv, 'level'] = 'L4'
+        df.loc[mask_fat, 'level'] = 'FAT'
+        df['level'] = df['level'].fillna('Other')
+ 
+
+
     df = flatten_extended_status(df, [
         'script_in_development_date', 'assigned_date', 'in_progress_date',
         'installation_ready_(pre-energization)_date',

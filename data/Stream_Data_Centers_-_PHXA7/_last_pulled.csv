@@ -1,0 +1,7 @@
+file,rows,status,pulled_at
+issues.csv,109,success,2026-04-09 10:13:42
+checklists.csv,8269,success,2026-04-09 10:13:42
+tests.csv,25,success,2026-04-09 10:13:42
+equipment.csv,1177,success,2026-04-09 10:13:42
+people.csv,128,success,2026-04-09 10:13:42
+companies.csv,23,success,2026-04-09 10:13:42
