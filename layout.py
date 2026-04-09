@@ -706,7 +706,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     marker=dict(color='#E04040'),
                     text=co_summary['Failed'].apply(lambda v: str(v) if v > 0 else ''),
                     textposition='inside',
-                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=12),
+                    textfont=dict(color="#1D1818", family='Barlow, sans-serif', size=12),
                 ))
                 fig_co.add_trace(go.Bar(
                     y=co_summary['assigned_company'],
@@ -720,7 +720,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     font=dict(family='Barlow, sans-serif', size=11, color='#8A8F98'),
                     margin=dict(t=10, b=10, l=10, r=40),
                     xaxis=dict(gridcolor='#3E4248', tickfont=dict(color='#8A8F98')),
-                    yaxis=dict(tickfont=dict(size=11, color='#F0F0F0')),
+                    yaxis=dict(tickfont=dict(size=11, color="#1A1717")),
                     legend=dict(
                         orientation='h', yanchor='bottom', y=1.02,
                         xanchor='left', x=0,
