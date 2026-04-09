@@ -645,7 +645,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     name='Passed', marker=dict(color='#39B54A'),
                     text=unit_summary['Passed'].apply(lambda v: str(v) if v > 0 else ''),
                     textposition='inside',
-                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=12),
+                    textfont=dict(color="#242020", family='Barlow, sans-serif', size=12),
                 ))
                 fig_unit.add_trace(go.Bar(
                     x=unit_summary['Unit'], y=unit_summary['Failed'],
