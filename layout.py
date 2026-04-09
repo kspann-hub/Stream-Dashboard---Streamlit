@@ -144,15 +144,21 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
             col_l, col_r = st.columns(2)
 
             with col_l:
-                if 'priority' in issues.columns:
+               if 'priority' in issues.columns:
                     priority_counts = issues['priority'].value_counts().reset_index()
                     priority_counts.columns = ['Priority', 'Count']
-                    colors = {
-                        'High (Will Impact Performance)': '#E04040',
-                        'Moderate (May Impact Performance)': '#F4B942',
-                        "Low (Won't Impact Performance)": '#39B54A'
-                    }
-                    color_list = [colors.get(p, '#8A8F98') for p in priority_counts['Priority']]
+
+                    # Sort so highest severity is first (gets red)
+                    priority_counts['_sort'] = priority_counts['Priority'].str.lower().map(
+                        lambda p: 0 if any(x in p for x in ['critical', 'p0', 'high']) else
+                                  1 if any(x in p for x in ['moderate', 'p1', 'medium']) else
+                                  2 if any(x in p for x in ['low', 'p2', 'minor']) else 3
+                    )
+                    priority_counts = priority_counts.sort_values('_sort').drop(columns='_sort')
+
+                    priority_scale = ['#E04040', '#F4B942', '#39B54A', '#4A90D9', '#8A8F98']
+                    color_list = [priority_scale[i % len(priority_scale)]
+                                  for i in range(len(priority_counts))]
                     st.plotly_chart(plotly_donut(priority_counts['Priority'],
                                                  priority_counts['Count'],
                                                  "All Issues by Priority", color_list),
@@ -233,6 +239,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
     # ══════════════════════════════════════════════════════════════
     # TAB 2 — CHECKLIST (PFC)
     # ══════════════════════════════════════════════════════════════
+            
     with tab2:
         if checklists.empty:
             st.info("No checklist data available.")
@@ -244,10 +251,22 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
             levels_ordered = ['L2', 'L3', 'L4', 'FAT']
             active_levels = [lv for lv in levels_ordered if lv in checklists['level'].values]
 
+            # Dynamic color palettes
+
+            DISCIPLINE_PALETTE = px.colors.qualitative.Set2
+            disc_names = sorted(checklists['discipline'].dropna().unique())
+            disc_colors = {name: DISCIPLINE_PALETTE[i % len(DISCIPLINE_PALETTE)]
+                           for i, name in enumerate(disc_names)}
+
+            LEVEL_PALETTE = ['#7F77DD', '#1D9E75', '#5DCAA5', '#85B7EB']
+            level_colors = {lv: LEVEL_PALETTE[i % len(LEVEL_PALETTE)]
+                            for i, lv in enumerate(active_levels)}
+
+
             section("Checklist Status by Level")
 
             dc_status_colors = {
-                'Not Started':  '#3E4248',
+                'Not Started':  '#8A8F98',
                 'In Progress':  '#F5A623',
                 'GC to Verify': '#4A90D9',
                 'Finished':     '#39B54A',
@@ -263,7 +282,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     status_cts.columns = ['Status', 'Count']
                     total = len(lv_df)
 
-                    colors = [dc_status_colors.get(s, '#8A8F98') for s in status_cts['Status']]
+                    colors = [dc_status_colors.get(s, '#3E4248') for s in status_cts['Status']]
 
                     fig_donut = go.Figure(go.Pie(
                         labels=status_cts['Status'],
@@ -271,13 +290,14 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                         hole=0.65,
                         marker=dict(colors=colors),
                         textinfo='percent',
-                        textfont=dict(size=11, color='#F0F0F0', family='Barlow, sans-serif'),
+                        textfont=dict(size=11, color='#3E4248', family='Barlow, sans-serif'),
                         hovertemplate='%{label}: %{value}<extra></extra>',
                     ))
                     fig_donut.update_layout(
                         title=dict(
                             text=f"{lv}",
-                            font=dict(size=16, color='#F0F0F0', family='Barlow Condensed, sans-serif'),
+                            font=dict(size=16, color=level_colors.get(lv, '#F0F0F0'),
+                                      family='Barlow Condensed, sans-serif'),
                             x=0.5, xanchor='center'
                         ),
                         annotations=[dict(
@@ -287,11 +307,11 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                             showarrow=False
                         )],
                         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(family='Barlow, sans-serif', color='#8A8F98'),
+                        font=dict(family='Barlow, sans-serif', color='#3E4248'),
                         margin=dict(t=40, b=10, l=10, r=10),
                         showlegend=True,
                         legend=dict(
-                            font=dict(size=10, color='#8A8F98'),
+                            font=dict(size=10, color='#3E4248'),
                             orientation='h', yanchor='top', y=-0.05,
                             xanchor='center', x=0.5
                         ),
@@ -366,7 +386,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     orientation='h', name=disc,
                     marker=dict(color=disc_colors.get(disc, '#8A8F98')),
                     text=disc_df['Count'], textposition='inside',
-                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=11),
+                    textfont=dict(color="#2B2828", family='Barlow, sans-serif', size=11),
                 ))
 
             fig_disc.update_layout(
@@ -374,9 +394,9 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                 plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                 font=dict(family='Barlow, sans-serif', size=11, color='#8A8F98'),
                 margin=dict(t=10, b=10, l=10, r=30),
-                xaxis=dict(gridcolor='#3E4248', tickfont=dict(color='#8A8F98')),
+                xaxis=dict(gridcolor='#3E4248', tickfont=dict(color='#3E4248')),
                 yaxis=dict(
-                    tickfont=dict(size=13, color='#F0F0F0'),
+                    tickfont=dict(size=13, color="#2B2828"),
                     categoryorder='array',
                     categoryarray=list(reversed(active_levels))
                 ),
@@ -403,10 +423,10 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                 co_level = co_level[co_level['assigned_company'].isin(top_cos)]
 
                 level_colors = {
-                    'L2':  '#F5A623',
-                    'L3':  '#4A90D9',
-                    'L4':  '#39B54A',
-                    'FAT': '#8A8F98',
+                    'L2': '#7F77DD',
+                    'L3': '#1D9E75',
+                    'L4': '#5DCAA5',
+                    'FAT': '#85B7EB'
                 }
 
                 fig_co = go.Figure()
@@ -490,148 +510,232 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
     # ══════════════════════════════════════════════════════════════
     with tab3:
         if tests.empty:
-            st.info("No test data available.")
+            st.info("No functional test data available.")
         else:
-            total_tests   = len(tests)
-            passed        = tests[tests['status'] == 'Passed'].shape[0]
-            in_prog_tests = tests[tests['status'] == 'In Progress'].shape[0]
-            assigned_tests = tests[tests['status'] == 'Assigned'].shape[0]
-            deferred      = tests[tests['status'] == 'Deferred to 1B'].shape[0]
-            pass_rate     = f"{passed/total_tests*100:.1f}%" if total_tests > 0 else "0%"
+            total_tests = len(tests)
+            passed  = (tests['status'] == 'Passed').sum()
+            failed  = (tests['status'] == 'Failed').sum()
+            not_started = (tests['status'] == 'Not Started').sum()
+            in_prog = total_tests - passed - failed - not_started
+            pass_rate = (passed / total_tests * 100) if total_tests > 0 else 0
 
-            section("Test Summary")
-            c1, c2, c3, c4, c5 = st.columns(5)
-            with c1: kpi_card("Total Tests", total_tests, "kpi-white")
-            with c2:
-                pct   = passed/total_tests*100 if total_tests > 0 else 0
-                color = "kpi-green" if pct >= 90 else "kpi-yellow" if pct >= 70 else "kpi-red"
-                kpi_card("Passed", passed, color, pass_rate)
-            with c3: kpi_card("In Progress", in_prog_tests, "kpi-blue")
-            with c4: kpi_card("Assigned", assigned_tests, "kpi-yellow")
-            with c5: kpi_card("Deferred", deferred, "kpi-white")
+            section("Functional Test Summary")
 
+            # ── KPI Cards ────────────────────────────────────────────────
+            kpi_data = [
+                ("Total Tests", total_tests, '#F0F0F0'),
+                ("Passed",      passed,      '#39B54A'),
+                ("Failed",      failed,      '#E04040'),
+                ("Not Started", not_started, '#8A8F98'),
+            ]
+            kpi_cols = st.columns(len(kpi_data))
+            for i, (label, value, color) in enumerate(kpi_data):
+                with kpi_cols[i]:
+                    st.markdown(f"""
+                    <div style="
+                        background: #2D3035; border: 1px solid #3E4248;
+                        border-radius: 10px; padding: 16px; text-align: center;
+                    ">
+                        <div style="font-family: 'Barlow Condensed', sans-serif;
+                            font-size: 14px; color: #8A8F98; text-transform: uppercase;
+                            letter-spacing: 1px;">{label}</div>
+                        <div style="font-family: 'Barlow Condensed', sans-serif;
+                            font-size: 32px; font-weight: 700; color: {color};
+                            margin: 4px 0;">{value}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            st.markdown("<div style='height: 16px'></div>", unsafe_allow_html=True)
+
+            # ── Status Donut + Pass Rate Gauge side by side ──────────────
             col_l, col_r = st.columns(2)
+
             with col_l:
+                section("Tests by Status")
                 status_counts = tests['status'].value_counts().reset_index()
                 status_counts.columns = ['Status', 'Count']
-                status_colors = {
-                    'Passed': '#39B54A',
-                    'Partially Passed (Test to be Repeated)': '#F4B942',
+
+                test_status_colors = {
+                    'Passed':      '#39B54A',
+                    'Failed':      '#E04040',
+                    'Not Started': '#3E4248',
                     'In Progress': '#4A90D9',
-                    'Assigned': '#8A8F98',
-                    'Script In Development': '#6E7FD4',
-                    'Deferred to 1B': '#6E7FD4',
-                    'Voided': '#3E4248'
                 }
-                color_list = [status_colors.get(s, '#8A8F98') for s in status_counts['Status']]
-                st.plotly_chart(plotly_donut(status_counts['Status'], status_counts['Count'],
-                                             "Tests by Status", color_list),
-                                use_container_width=True)
+                color_list = [test_status_colors.get(s, '#8A8F98') for s in status_counts['Status']]
+
+                fig_donut = go.Figure(go.Pie(
+                    labels=status_counts['Status'],
+                    values=status_counts['Count'],
+                    hole=0.65,
+                    marker=dict(colors=color_list),
+                    textinfo='percent',
+                    textfont=dict(size=12, color='#F0F0F0', family='Barlow, sans-serif'),
+                    hovertemplate='%{label}: %{value}<extra></extra>',
+                ))
+                fig_donut.update_layout(
+                    annotations=[dict(
+                        text=f"<b>{total_tests}</b>",
+                        x=0.5, y=0.5,
+                        font=dict(size=22, color='#F0F0F0', family='Barlow Condensed, sans-serif'),
+                        showarrow=False
+                    )],
+                    plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                    font=dict(family='Barlow, sans-serif', color='#8A8F98'),
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    showlegend=True,
+                    legend=dict(
+                        font=dict(size=11, color='#8A8F98'),
+                        orientation='h', yanchor='top', y=-0.05,
+                        xanchor='center', x=0.5
+                    ),
+                    height=300,
+                )
+                st.plotly_chart(fig_donut, use_container_width=True)
 
             with col_r:
-                if 'attempt_count' in tests.columns:
-                    tests['attempt_count'] = pd.to_numeric(tests['attempt_count'], errors='coerce').fillna(1).astype(int)
-                    attempt_col = 'asset_type' if 'asset_type' in tests.columns else 'discipline'
-                    attempt_summary = tests.groupby(attempt_col).agg(
-                        Total_Tests=('status', 'count'),
-                        Avg_Attempts=('attempt_count', 'mean'),
-                        Max_Attempts=('attempt_count', 'max'),
-                        Retests=('attempt_count', lambda x: (x > 1).sum())
-                    ).reset_index()
-                    attempt_summary['Avg_Attempts'] = attempt_summary['Avg_Attempts'].round(2)
-                    attempt_summary = attempt_summary.sort_values('Avg_Attempts', ascending=True)
-
-                    fig = go.Figure(go.Bar(
-                        y=attempt_summary[attempt_col],
-                        x=attempt_summary['Avg_Attempts'],
-                        orientation='h',
-                        marker=dict(
-                            color=attempt_summary['Avg_Attempts'],
-                            colorscale=[[0, '#39B54A'], [0.5, '#F4B942'], [1, '#E04040']],
-                            showscale=False
+                section("Pass Rate")
+                fig_gauge = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=pass_rate,
+                    number=dict(suffix="%", font=dict(size=36, color='#F0F0F0',
+                                                       family='Barlow Condensed, sans-serif')),
+                    gauge=dict(
+                        axis=dict(range=[0, 100], tickfont=dict(color='#8A8F98', size=11)),
+                        bar=dict(color='#39B54A'),
+                        bgcolor='#3E4248',
+                        borderwidth=0,
+                        steps=[
+                            dict(range=[0, 50], color='#3E4248'),
+                            dict(range=[50, 80], color='#3E4248'),
+                            dict(range=[80, 100], color='#3E4248'),
+                        ],
+                        threshold=dict(
+                            line=dict(color='#F0F0F0', width=2),
+                            thickness=0.75,
+                            value=pass_rate
                         ),
-                        text=attempt_summary.apply(
-                            lambda r: f"Avg: {r['Avg_Attempts']}  |  Retests: {int(r['Retests'])}",
-                            axis=1),
-                        textposition='inside',
-                        textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=11)
-                    ))
-                    fig.update_layout(
-                        title=dict(text='Avg Attempts by Equipment Type',
-                                   font=dict(size=12, color='#8A8F98', family='Barlow Condensed')),
-                        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(family='Barlow, sans-serif', size=11, color='#8A8F98'),
-                        margin=dict(t=40, b=10, l=10, r=10),
-                        xaxis=dict(gridcolor='#3E4248', tickfont=dict(color='#8A8F98')),
-                        yaxis=dict(tickfont=dict(size=10, color='#8A8F98')),
-                        height=300
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
+                    ),
+                ))
+                fig_gauge.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                    font=dict(family='Barlow, sans-serif', color='#8A8F98'),
+                    margin=dict(t=40, b=10, l=30, r=30),
+                    height=300,
+                )
+                st.plotly_chart(fig_gauge, use_container_width=True)
 
-            # ── Completion by Discipline (stacked bar) ──
-            section("Tests by Division")
-            if 'discipline' in tests.columns:
-                tests['discipline'] = tests['discipline'].fillna('Unassigned Division')
-                disc_tests = tests.groupby('discipline').agg(
-                    # ... rest stays the same
+            # ── Pass/Fail by Equipment Unit ──────────────────────────────
+            section("Results by Equipment Unit")
+
+            # Extract unit from asset_name (e.g., DH101.P1-USB → DH101)
+            tests['_unit'] = tests['asset_name'].str.extract(r'^([A-Za-z]+\d+)', expand=False)
+
+            if tests['_unit'].notna().any():
+                unit_summary = tests.groupby('_unit').agg(
                     Total=('status', 'count'),
-                    Passed=('status', lambda x: (x == 'Passed').sum())
-                ).reset_index()
-                disc_tests['Remaining'] = disc_tests['Total'] - disc_tests['Passed']
-                disc_tests['Pass %'] = (
-                    disc_tests['Passed'] / disc_tests['Total'] * 100).round(1)
-                disc_tests = disc_tests.sort_values('Total', ascending=True)
+                    Passed=('status', lambda x: (x == 'Passed').sum()),
+                    Failed=('status', lambda x: (x == 'Failed').sum()),
+                    Not_Started=('status', lambda x: (x == 'Not Started').sum()),
+                ).reset_index().rename(columns={'_unit': 'Unit'})
+                unit_summary = unit_summary.sort_values('Unit')
 
-                fig = go.Figure()
-                fig.add_trace(go.Bar(
-                    y=disc_tests['discipline'], x=disc_tests['Passed'],
-                    name='Passed', orientation='h',
-                    marker_color='#39B54A',
-                    text=disc_tests.apply(
-                        lambda r: f"{int(r['Passed'])} ({r['Pass %']}%)"
-                        if r['Passed'] > 0 else '', axis=1),
+                fig_unit = go.Figure()
+                fig_unit.add_trace(go.Bar(
+                    x=unit_summary['Unit'], y=unit_summary['Passed'],
+                    name='Passed', marker=dict(color='#39B54A'),
+                    text=unit_summary['Passed'].apply(lambda v: str(v) if v > 0 else ''),
                     textposition='inside',
-                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=11)
+                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=12),
                 ))
-                fig.add_trace(go.Bar(
-                    y=disc_tests['discipline'], x=disc_tests['Remaining'],
-                    name='Remaining', orientation='h',
-                    marker_color='#3E4248',
-                    text=disc_tests['Total'].apply(lambda t: str(int(t))),
-                    textposition='outside',
-                    textfont=dict(color='#8A8F98', family='Barlow, sans-serif', size=11)
+                fig_unit.add_trace(go.Bar(
+                    x=unit_summary['Unit'], y=unit_summary['Failed'],
+                    name='Failed', marker=dict(color='#E04040'),
+                    text=unit_summary['Failed'].apply(lambda v: str(v) if v > 0 else ''),
+                    textposition='inside',
+                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=12),
                 ))
-                fig.update_layout(
+                fig_unit.add_trace(go.Bar(
+                    x=unit_summary['Unit'], y=unit_summary['Not_Started'],
+                    name='Not Started', marker=dict(color='#3E4248'),
+                    text=unit_summary['Not_Started'].apply(lambda v: str(v) if v > 0 else ''),
+                    textposition='inside',
+                    textfont=dict(color='#8A8F98', family='Barlow, sans-serif', size=12),
+                ))
+                fig_unit.update_layout(
+                    barmode='stack',
+                    plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                    font=dict(family='Barlow, sans-serif', size=11, color='#8A8F98'),
+                    margin=dict(t=10, b=10, l=10, r=10),
+                    xaxis=dict(tickfont=dict(size=12, color='#F0F0F0')),
+                    yaxis=dict(gridcolor='#3E4248', tickfont=dict(color='#8A8F98')),
+                    legend=dict(
+                        orientation='h', yanchor='bottom', y=1.02,
+                        xanchor='left', x=0,
+                        font=dict(color='#8A8F98', size=11)
+                    ),
+                    height=350,
+                )
+                st.plotly_chart(fig_unit, use_container_width=True)
+
+            # ── Results by Contractor ────────────────────────────────────
+            if 'assigned_company' in tests.columns:
+                section("Results by Contractor")
+
+                co_summary = tests.groupby('assigned_company').agg(
+                    Total=('status', 'count'),
+                    Passed=('status', lambda x: (x == 'Passed').sum()),
+                    Failed=('status', lambda x: (x == 'Failed').sum()),
+                ).reset_index()
+                co_summary['Pass Rate %'] = (
+                    co_summary['Passed'] / co_summary['Total'] * 100
+                ).round(1)
+                co_summary = co_summary.sort_values('Total', ascending=True)
+
+                fig_co = go.Figure()
+                fig_co.add_trace(go.Bar(
+                    y=co_summary['assigned_company'], x=co_summary['Passed'],
+                    name='Passed', orientation='h',
+                    marker=dict(color='#39B54A'),
+                    text=co_summary['Passed'].apply(lambda v: str(v) if v > 0 else ''),
+                    textposition='inside',
+                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=12),
+                ))
+                fig_co.add_trace(go.Bar(
+                    y=co_summary['assigned_company'], x=co_summary['Failed'],
+                    name='Failed', orientation='h',
+                    marker=dict(color='#E04040'),
+                    text=co_summary['Failed'].apply(lambda v: str(v) if v > 0 else ''),
+                    textposition='inside',
+                    textfont=dict(color='#F0F0F0', family='Barlow, sans-serif', size=12),
+                ))
+                fig_co.add_trace(go.Bar(
+                    y=co_summary['assigned_company'],
+                    x=co_summary['Total'] - co_summary['Passed'] - co_summary['Failed'],
+                    name='Not Started / In Progress', orientation='h',
+                    marker=dict(color='#3E4248'),
+                ))
+                fig_co.update_layout(
                     barmode='stack',
                     plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                     font=dict(family='Barlow, sans-serif', size=11, color='#8A8F98'),
                     margin=dict(t=10, b=10, l=10, r=40),
-                    legend=dict(bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#8A8F98'), orientation='h',
-                                x=0.5, xanchor='center', y=-0.08),
                     xaxis=dict(gridcolor='#3E4248', tickfont=dict(color='#8A8F98')),
-                    yaxis=dict(tickfont=dict(size=10, color='#8A8F98')),
-                    height=max(250, len(disc_tests) * 45)
+                    yaxis=dict(tickfont=dict(size=11, color='#F0F0F0')),
+                    legend=dict(
+                        orientation='h', yanchor='bottom', y=1.02,
+                        xanchor='left', x=0,
+                        font=dict(color='#8A8F98', size=11)
+                    ),
+                    height=max(200, len(co_summary) * 60),
                 )
-                st.plotly_chart(fig, use_container_width=True)
-                 
+                st.plotly_chart(fig_co, use_container_width=True)
 
-            if 'asset_type' in tests.columns:
-                section("Pass Rate by Equipment Type")
-                asset_tests = tests.groupby('asset_type').agg(
-                    Total=('status', 'count'),
-                    Passed=('status', lambda x: (x == 'Passed').sum())
-                ).reset_index()
-                asset_tests['Pass Rate %'] = (
-                    asset_tests['Passed'] / asset_tests['Total'] * 100).round(1)
-                st.dataframe(asset_tests.rename(columns={'asset_type': 'Asset Type'}),
-                             use_container_width=True, hide_index=True)
-
-            with st.expander("📄 View All Tests"):
-                view_cols = [c for c in ['number', 'name', 'status', 'discipline',
-                                         'assigned_name', 'asset_name', 'asset_type',
-                                         'attempt_count'] if c in tests.columns]
-                st.dataframe(tests[view_cols], use_container_width=True, hide_index=True)
+            # ── Full Test Detail (expandable) ────────────────────────────
+            with st.expander("View All Tests"):
+                display_cols = ['name', 'status', 'assigned_name', 'discipline',
+                                'attempt_count', 'asset_name']
+                available = [c for c in display_cols if c in tests.columns]
+                st.dataframe(tests[available], use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════
     # TAB 4 — EQUIPMENT
