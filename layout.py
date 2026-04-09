@@ -666,7 +666,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
                     plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                     font=dict(family='Barlow, sans-serif', size=11, color='#8A8F98'),
                     margin=dict(t=10, b=10, l=10, r=10),
-                    xaxis=dict(tickfont=dict(size=12, color='#F0F0F0')),
+                    xaxis=dict(tickfont=dict(size=12, color="#201E1E")),
                     yaxis=dict(gridcolor='#3E4248', tickfont=dict(color='#8A8F98')),
                     legend=dict(
                         orientation='h', yanchor='bottom', y=1.02,
