@@ -6,6 +6,9 @@ from datetime import datetime
 
 from utils.cxalloy import load_all_projects, load_project_data
 
+from background_sync import start_background_sync
+start_background_sync()
+
 # ─── Page Config ──────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="CriticalArc Dashboard",
