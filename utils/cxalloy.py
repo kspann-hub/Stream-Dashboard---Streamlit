@@ -103,29 +103,23 @@ def load_all_projects() -> pd.DataFrame:
     data = _get("project")
     return pd.DataFrame(data) if data else pd.DataFrame()
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)
 def load_project_data(project_id: int) -> dict:
     from utils.cleaning import clean_all
-    from concurrent.futures import ThreadPoolExecutor
+    import sqlite3
 
-    with st.spinner("Fetching data from CxAlloy..."):
-        def fetch_issues():
-            return "Issues", pd.DataFrame(_post("issue", {"project_id": project_id}, include=["comments", "time_to_close", "extended_status", "collaborators"]))
-        def fetch_checklists():
-            return "Checklists", pd.DataFrame(_post("checklist", {"project_id": project_id}, include=["time_to_close", "extended_status"]))
-        def fetch_tests():
-            return "Tests", pd.DataFrame(_post("test", {"project_id": project_id}, include=["attempts"]))
-        def fetch_people():
-            return "People", pd.DataFrame(_get("person", {"project_id": project_id}))
-        def fetch_companies():
-            return "Companies", pd.DataFrame(_get("company", {"project_id": project_id}))
-        def fetch_equipment():
-            return "Equipment", pd.DataFrame(_get("equipment", {"project_id": project_id, "include": "systems,zones,attributes,areas_served"}))
-
-        with ThreadPoolExecutor(max_workers=6) as pool:
-            results = dict(pool.map(lambda f: f(), [
-                fetch_issues, fetch_checklists, fetch_tests,
-                fetch_people, fetch_companies, fetch_equipment
-            ]))
+    conn = sqlite3.connect("dashboard_data.db")
+    results = {}
+    for table in ["Issues", "Checklists", "Tests", "People", "Companies", "Equipment"]:
+        try:
+            df = pd.read_sql(f"SELECT * FROM [{table}] WHERE _project_id = ?", conn, params=(project_id,))
+            df = df.drop(columns=["_project_id"], errors="ignore")
+            # Parse JSON strings back into dicts/lists
+            for col in df.columns:
+                df[col] = df[col].apply(lambda x: json.loads(x) if isinstance(x, str) and x.startswith(('[', '{')) else x)
+            results[table] = df
+        except Exception:
+            results[table] = pd.DataFrame()
+    conn.close()
 
     return clean_all(results)

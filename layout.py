@@ -105,10 +105,16 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
     issues_raw     = safe_get(all_sheets, 'Issues')
     checklists_raw = safe_get(all_sheets, 'Checklists')
     tests_raw      = safe_get(all_sheets, 'Tests')
+    equipment = all_sheets.get('Equipment', pd.DataFrame())
+    people = all_sheets.get('People', pd.DataFrame())
+    companies = all_sheets.get('Companies', pd.DataFrame())
 
     issues     = apply_filters(issues_raw, filters)
     checklists = apply_filters(checklists_raw, filters)
     tests      = apply_filters(tests_raw, filters)
+    people     = apply_filters(people, filters)
+    companies  = apply_filters(companies, filters)
+    equipment   = apply_filters(equipment, filters)
 
     tab1, tab2, tab3, tab4 = st.tabs([
         "📋 Issue Tracking",
@@ -245,7 +251,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
             st.info("No checklist data available.")
         else:
             from config import checklist_complete_statuses
-            complete_statuses = checklist_complete_statuses()
+            complete_statuses = checklist_complete_statuses
 
             # Derive active levels
             levels_ordered = ['L2', 'L3', 'L4', 'FAT']
@@ -773,7 +779,7 @@ def render(config: dict, filters: dict, all_sheets: dict = None):
 
             if not checklists.empty and 'asset_key' in checklists.columns:
                 from config import checklist_complete_statuses
-                _complete = checklist_complete_statuses()
+                _complete = checklist_complete_statuses
                 cl_agg = checklists.groupby(checklists['asset_key'].astype(str)).agg(
                     cl_total=('status', 'count'),
                     cl_done=('status', lambda x: x.isin(_complete + ['GC to Verify']).sum()),

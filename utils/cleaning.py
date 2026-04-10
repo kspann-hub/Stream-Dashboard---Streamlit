@@ -165,12 +165,9 @@ def clean_checklists(df: pd.DataFrame, lookups: dict) -> pd.DataFrame:
         df['level'] = df['level'].fillna('Other')
  
 
-
     df = flatten_extended_status(df, [
-        'script_in_development_date', 'assigned_date', 'in_progress_date',
-        'installation_ready_(pre-energization)_date',
-        'de-energized_inspection_complete_(cxa)_date',
-        'contractor_complete_date', 'verified_date', 'removed_from_scope_date'
+        'not_started_date', 'in_progress_date',
+        'gc_to_verify_date', 'finished_date',
     ])
 
     if 'date_created' in df.columns:
