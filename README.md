@@ -24,7 +24,7 @@ A Streamlit dashboard for tracking commissioning progress on aviation projects. 
 
 ## How It Works
 
-The dashboard solves a core problem: the CxAlloy API can take several minutes to return data for large projects. Instead of making users wait on every page load, we sync data in the background and serve it from a local SQLite database.
+CxAlloy API can take several minutes to return data for large projects. Instead of making users wait on every page load, we sync data in the background and serve it from a local SQLite database.
 
 ```
 CxAlloy API → sync_logic.py → dashboard_data.db → cxalloy.py reads DB → cleaning.py → layout.py renders
@@ -105,10 +105,10 @@ Stream-Dashboard---Streamlit/
 │   └── secrets.toml         # API credentials (NEVER commit this)
 │
 ├── data/                    # CSV exports from inspect_data.py (for debugging)
-├── dashboard_data.db        # SQLite database (auto-generated, do NOT commit)
+├── dashboard_data.db        # SQLite database (auto-generated)
 ├── inspect_data.py          # Debug utility — dumps raw API data to CSVs
 ├── requirements.txt         # Python dependencies
-├── .gitignore
+├── .gitignore               # files we want to not push to github/keep only on local (ESP SECRETS.TOML)
 └── README.md
 ```
 
