@@ -1,6 +1,8 @@
 # CriticalArc Commissioning Dashboard
 
-A Streamlit dashboard for tracking commissioning progress on data center (and aviation) projects. Pulls data from the CxAlloy API, syncs it to a local SQLite database, and renders interactive visualizations — loading in seconds instead of minutes.
+TEMPLATE PROJECT FOR AVIATION DASHBOARDS.
+
+A Streamlit dashboard for tracking commissioning progress on aviation projects. Pulls data from the CxAlloy API, syncs it to a local SQLite database, and renders interactive visualizations — loading in seconds instead of minutes. 
 
 ---
 
